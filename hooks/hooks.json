@@ -1,0 +1,17 @@
+{
+  "description": "Keep orch:reader and orch:planner from writing outside ~/.claude/orch/",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/guard-write.js"]
+          }
+        ]
+      }
+    ]
+  }
+}
