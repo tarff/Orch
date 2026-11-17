@@ -1,6 +1,6 @@
 {
   "name": "orch",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "/orch:run: Haiku reads the code, Fable plans, you approve, Opus builds, Haiku reviews, optional Codex review",
   "author": {
     "name": "tarff"

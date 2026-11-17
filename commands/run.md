@@ -16,16 +16,16 @@ If the task above is empty, ask the user what they want built and stop.
 Make a folder for this run with Bash:
 
 ```bash
-mkdir -p ~/.claude/orch/<project>/<YYYY-MM-DD>-<task-slug>
+mkdir -p "$HOME/.claude/orch/<project>/<YYYY-MM-DD>-<task-slug>"
 ```
 
-`<project>` is the working directory's folder name. `<task-slug>` is three to five lowercase words from the task, joined with hyphens. If the folder already exists, add `-2`, `-3` and so on. Use the folder's full absolute path everywhere below, written out as `<run>`.
+`<project>` is the working directory's folder name. `<task-slug>` is three to five lowercase words from the task, joined with hyphens. If the folder already exists, add `-2`, `-3` and so on. Use the folder's full absolute path everywhere below, written out as `<run>`. Folder names can contain spaces, so always put `<run>` in double quotes in shell commands.
 
 If the working directory is a git repo, record where it started, for the Codex step:
 
 ```bash
-git rev-parse HEAD > <run>/start-commit.txt 2>/dev/null || echo none > <run>/start-commit.txt
-git status --porcelain > <run>/start-status.txt
+git rev-parse HEAD > "<run>/start-commit.txt" 2>/dev/null || echo none > "<run>/start-commit.txt"
+git status --porcelain > "<run>/start-status.txt"
 ```
 
 ## 1. Read
@@ -78,12 +78,13 @@ The Codex script reviews either commits or uncommitted changes, not both at once
   ```bash
   node "<script path>" review --wait --base <start commit>
   ```
+  If the file is `none` but `git rev-parse HEAD` now succeeds, the repo had no commits when the run started and the run made the first ones. The Codex script needs a starting commit to compare against, so it cannot review those. Tell the user that plainly, and still review uncommitted changes below if there are any.
 - **Uncommitted changes**: if `git status --porcelain` prints anything, review them:
   ```bash
   node "<script path>" review --wait --scope working-tree
   ```
   If `<run>/start-status.txt` is not empty, tell the user first that the folder already had uncommitted changes before this run, and Codex will review those too.
 
-Run each review that applies with Bash, with `run_in_background: true`, one after the other. If neither applies, tell the user there is nothing for Codex to review.
+Run each review that applies with Bash, with `run_in_background: true`, one after the other. If neither applies, and you have not already told the user about a repo with no starting commit, tell the user there is nothing for Codex to review.
 
 When each finishes, show its output word for word. Do not fix anything it reports unless the user asks. If they ask, send the findings to the builder and then the reviewer, as in step 5. After those fixes, ask again with the same two options. Repeat until the user picks `No, finish`.
