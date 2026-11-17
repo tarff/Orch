@@ -1,0 +1,8 @@
+{
+  "name": "orchestrator",
+  "version": "0.1.0",
+  "description": "/orchestrate: Haiku reads the code, Fable plans, you approve, Opus builds, Haiku reviews, optional Codex review",
+  "author": {
+    "name": "tarff"
+  }
+}

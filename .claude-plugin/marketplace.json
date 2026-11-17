@@ -1,0 +1,18 @@
+{
+  "name": "orchestrator-local",
+  "owner": {
+    "name": "tarff"
+  },
+  "metadata": {
+    "description": "Local marketplace for the orchestrator plugin",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "orchestrator",
+      "source": "./",
+      "version": "0.1.0",
+      "description": "/orchestrate: Haiku reads the code, Fable plans, you approve, Opus builds, Haiku reviews, optional Codex review"
+    }
+  ]
+}
