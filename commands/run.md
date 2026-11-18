@@ -86,17 +86,27 @@ cksum "<run>/plan.md" > "<run>/plan-before.txt"
 
 When the planner replies, run `cksum "<run>/plan.md"` and compare it with `<run>/plan-before.txt`. If they match, the plan file did not change, whatever the planner says. Tell the planner with SendMessage that its rewrite did not reach the file, and to Read the file and then save it again. Check again when it replies. If the file still has not changed, tell the user, and do not show the old plan as if it were the new one.
 
-## 4. Build
+## 4. Build, one step at a time
 
-Run the agent `orch:builder`. Give it the task, the working directory and the path `<run>/plan.md`. Tell it the plan is approved. Keep its agent ID.
+Each step of the plan gets its own new `orch:builder`, so no builder carries the whole build in its context. For each step N, in order:
 
-## 5. Review
+1. **Ask first if needed.** If the plan marks step N "Needs your decision", ask the user with AskUserQuestion before starting it. Show the plan's question and any measurements that earlier step reports recorded for it.
+2. **Build.** Run a new `orch:builder`. Give it the task, the working directory, `<run>/plan.md`, the step number N, the paths of the earlier step reports (`<run>/build-step-1.md` and so on), the path `<run>/build-step-N.md` to save its report to, and the user's answer if there was one. Tell it the plan is approved and to do step N only. Keep its agent ID.
+3. **Check the report was saved.** If `<run>/build-step-N.md` does not exist, tell the builder with SendMessage to save it. If it is still missing, tell the user.
+4. **If the builder stopped:**
+   - for a choice the plan left to the user: ask the user, then send the answer to the same builder with SendMessage so it carries on with that step
+   - because the step can't be done as written: show the user its report and ask `Change the plan` (to the planner, as in step 3, then restart this step with a new builder) or `Stop the build`
+5. **Review the step.** Run a new `orch:reviewer` with the task, the working directory, the plan path, the step number and `<run>/build-step-N.md`. Show the user the builder's summary and the reviewer's findings. If there are findings, ask whether to send them to the builder. If yes, send them to the same builder with SendMessage, then send its reply to the same reviewer with SendMessage to check the fixes. Repeat while issues remain and the user wants fixes.
 
-Run the agent `orch:reviewer`. Give it the task, the working directory, the path `<run>/plan.md` and the builder's full report. Keep its agent ID.
+Then go on to step N+1.
 
-Show the user the builder's summary (files changed, check results, anything left undone) and the reviewer's findings. If the reviewer found issues, ask the user whether to send them to the builder to fix.
+If SendMessage to a builder or reviewer fails, start a new one and give it the plan path, the step number, the step reports and the findings.
 
-If they say yes, send the findings to the same builder with SendMessage (it keeps its context). When it reports back, send its report to the same reviewer with SendMessage and ask it to check the fixes. Repeat while issues remain and the user wants fixes. Start a new agent only if SendMessage fails, and pass it the plan path, the findings and the earlier reports.
+## 5. Final review
+
+When every step is done, run one new `orch:reviewer` for the whole build, with the task, the working directory, the plan path and all the step reports. Ask it to re-run every step's check and to look for problems between steps. Keep its agent ID. Show the user its findings.
+
+If the user wants fixes, run a new `orch:builder` with the task, the working directory, the plan path, the step reports and the findings. Tell it to fix only those and to save its report to `<run>/build-fixes.md`. Then send that report to the same final reviewer with SendMessage to check the fixes. Further rounds go to the same fix builder and final reviewer with SendMessage. Repeat while issues remain and the user wants fixes.
 
 ## 6. Codex review (optional)
 
@@ -127,4 +137,4 @@ The Codex script reviews either commits or uncommitted changes, not both at once
 
 Run each review that applies with Bash, with `run_in_background: true`, one after the other. If neither applies, and you have not already told the user about a repo with no starting commit, tell the user there is nothing for Codex to review.
 
-When each finishes, show its output word for word. Do not fix anything it reports unless the user asks. If they ask, send the findings to the builder and then the reviewer, as in step 5. After those fixes, ask again with the same two options. Repeat until the user picks `No, finish`.
+When each finishes, show its output word for word. Do not fix anything it reports unless the user asks. If they ask, send the findings to the fix builder (starting one as in step 5 if there is none yet) and then the final reviewer, as in step 5. After those fixes, ask again with the same two options. Repeat until the user picks `No, finish`.

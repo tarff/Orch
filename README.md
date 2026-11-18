@@ -5,8 +5,8 @@ A Claude Code plugin that adds one command, `/orch:run`. You give it a task, and
 - **Haiku** reads your code and reports what is relevant.
 - **Fable** writes a step-by-step plan, where every step has a check that proves it worked.
 - **You** approve the plan. Nothing is built until you do.
-- **Opus** builds the approved plan, one step at a time.
-- **Haiku** reviews the result against the plan and re-runs the checks.
+- **Opus** builds the approved plan, with a fresh builder for each step.
+- **Haiku** reviews each step, then the whole build, against the plan and re-runs the checks.
 
 You can also have Codex review the plan before it is built, and review the code after.
 
@@ -65,6 +65,14 @@ Plugin commands carry the plugin's name in front, so type `/orch:run`, not `/run
 
 If you leave the task empty, the command asks what you want built and stops.
 
+If you are not yet sure what to build, settle that first. The Superpowers `brainstorming` skill works through the design with you, one question at a time, and writes a design document. Then give `/orch:run` the design document as the task, for example:
+
+```
+/orch:run Build the design in docs/plans/2026-01-01-export-dry-run-design.md
+```
+
+The plugin does not brainstorm itself. Its planner runs in the background and cannot ask you questions, so the design should be settled before the run starts.
+
 ## What happens
 
 | Step | What it does | Who runs it |
@@ -73,13 +81,17 @@ If you leave the task empty, the command asks what you want built and stops.
 | 1. Read | Finds the files, functions and conventions relevant to the task, quoting the real code. Saves its report to the run folder. | Haiku (`orch:reader`) |
 | 2. Plan | Writes a numbered plan. Each step names the files, the change, and a check that proves it worked. Saves it to the run folder. | Fable (`orch:planner`) |
 | 3. Approve | Shows you the plan word for word, open questions first, and waits for your choice. | You |
-| 4. Build | Carries out the approved plan in order and runs each step's check. | Opus (`orch:builder`) |
-| 5. Review | Checks the changes against the plan, re-runs the checks, and quotes the code for every problem it reports. Never edits. | Haiku (`orch:reviewer`) |
+| 4. Build | Builds the plan one step at a time. Each step gets a new builder, which runs that step's check, and then a reviewer for that step. If a step needs your decision, you are asked before or during it. | Opus (`orch:builder`), Haiku (`orch:reviewer`) |
+| 5. Final review | Checks the whole build against the plan, re-runs every check, and looks for problems between steps. Quotes the code for every problem it reports. Never edits. | Haiku (`orch:reviewer`) |
 | 6. Codex review (optional) | Asks whether you also want Codex to review the code. | Codex, through the openai-codex plugin |
 
 The main session only passes work between the agents. It does not read, plan or edit code itself. The agents pass their reports and plans to each other by file path, so the main chat does not have to retype them.
 
-If the reviewer finds problems, you are asked whether to send them back to the builder. If you say yes, the same builder fixes them and the same reviewer checks the fixes, each carrying on with what it already knows. This repeats for as long as problems remain and you want them fixed.
+Each builder holds only its own step, the plan and the earlier steps' reports, so no agent's context grows to cover the whole build. Each builder saves a report to the run folder, and later builders read those reports to know what is already done.
+
+If a step needs a choice from you, such as a time limit that has to be measured first or wording you must approve, the planner marks it "Needs your decision" and you are asked before that step starts. If a builder hits a choice the plan did not foresee, it stops and you are asked. Your answer goes back to the same builder, which carries on with that step.
+
+If a reviewer finds problems, you are asked whether to send them back. If you say yes, the same builder fixes them and the same reviewer checks the fixes, each carrying on with what it already knows. After the final review, fixes go to one new builder, and the final reviewer checks them. This repeats for as long as problems remain and you want them fixed.
 
 ## The approval step
 
@@ -120,12 +132,14 @@ Each run gets its own folder at `~/.claude/orch/<project>/<date>-<task>/`. It is
 | `start-commit.txt`, `start-status.txt` | Where a git repo started, so the Codex review knows what the run changed |
 | `codex-plan-review.md` | What was sent to Codex for a plan review, if you asked for one |
 | `plan-before.txt` | A fingerprint of the plan, taken before a rewrite |
+| `build-step-1.md`, `build-step-2.md` and so on | Each step's builder report: files changed, check output, and notes for later steps |
+| `build-fixes.md` | The report from fixes after the final review, if any |
 
 ## Safeguards
 
 - **Only the builder edits your code.** The reader and planner can read and search, and can write only inside `~/.claude/orch/`. A hook in this plugin blocks any write they try anywhere else, including writes through links that point outside that folder. The reviewer can also run commands, which it uses only to read git state and re-run checks.
 - **Rewrites of the plan are checked.** The orchestrator records the plan file's fingerprint before asking for a rewrite and compares it afterwards. If the file has not changed, the planner is told to save it again, and if it still has not changed you are told. You never see the old plan presented as the new one. This exists because a planner was once seen reporting a save that had failed.
-- **The builder sticks to the plan.** It does the steps in order and changes only the files the plan names. If a step cannot be done as written, it stops and reports rather than making up a different design.
+- **Each builder sticks to its step.** It does only that step and changes only the files the plan names. If the step cannot be done as written, it stops and reports rather than making up a different design. It never makes a choice the plan leaves to you.
 - **The builder does not commit, push, delete files or install packages** unless the plan says to. When a plan step installs packages, the builder runs the install through `sfw` ([Socket Firewall](https://socket.dev/)). If you do not use `sfw`, see [Known limits](#known-limits).
 - **The reviewer must quote the code** for every problem it reports, and may only give line numbers it has just read. A finding without a quote does not count.
 
@@ -177,4 +191,4 @@ It runs the hook against 16 cases, including real links inside the allowed folde
 - **Tested on Windows only.** The test cases use Windows paths, so the test needs changes before it will pass on macOS or Linux.
 - **`sfw` is assumed for package installs.** The builder puts `sfw` in front of any install command a plan includes. Without `sfw` installed, that install command fails.
 - **Codex cannot review the first commits of a brand-new repo.** Its code review compares against the commit the run started from. If the repo had no commits when the run started, there is nothing to compare against, and you are told so. Uncommitted changes are still reviewed.
-- **The run uses several agents,** so it costs more tokens than doing a small task directly. It is meant for changes big enough that a reviewed plan is worth having.
+- **The run uses many agents,** so it costs more tokens than doing a small task directly. A plan with 12 steps starts about 25: a builder and a reviewer per step, plus the final reviewer. Each one reads the plan and the files it needs before it starts. It is meant for changes big enough that a reviewed plan is worth having.

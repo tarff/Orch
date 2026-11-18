@@ -17,6 +17,9 @@ Output:
    - the files to change, as exact paths
    - what to change
    - **check**: the command or observation that proves the step worked, such as a test to run or output to expect. When a step changes how code behaves and the project has tests, make the check a test, and put writing that test before the code change so it can be seen failing first.
+   - **Needs your decision**, only when the step needs a choice from the user that can only be made during the build, such as a value that must be measured first or wording the user must approve. Give the question, and say which earlier step produces what the user needs to decide.
+
+   Each step is built by a new builder that sees only the plan and the earlier steps' reports, so each step must make sense on its own: name every file, and say what earlier steps leave in place that this step relies on.
 4. **Out of scope**: things you deliberately left out.
 
 Keep it to the smallest change that does the task. No refactors, extras or "flexibility" that the task did not ask for.
