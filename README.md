@@ -37,14 +37,14 @@ From GitHub:
 
 ```
 claude plugin marketplace add tarff/Orch
-claude plugin install orch@orchestrator-local
+claude plugin install orch@orch
 ```
 
 Or from a copy on your own machine, using the folder's full path:
 
 ```
 claude plugin marketplace add "<path to this folder>"
-claude plugin install orch@orchestrator-local
+claude plugin install orch@orch
 ```
 
 Then run `/reload-plugins` or restart Claude Code. The same commands work inside Claude Code as `/plugin marketplace add ...` and `/plugin install ...`.
@@ -134,8 +134,8 @@ Each run gets its own folder at `~/.claude/orch/<project>/<date>-<task>/`. It is
 Claude Code runs an installed copy of the plugin, not the folder or repo itself. To pick up a new version:
 
 ```
-claude plugin marketplace update orchestrator-local
-claude plugin update orch@orchestrator-local
+claude plugin marketplace update orch
+claude plugin update orch@orch
 ```
 
 Then run `/reload-plugins` or restart Claude Code.
