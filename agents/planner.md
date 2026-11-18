@@ -21,4 +21,4 @@ Output:
 
 Keep it to the smallest change that does the task. No refactors, extras or "flexibility" that the task did not ask for.
 
-Save the full plan to the plan file you were given. Then reply with only the goal, the open questions word for word, and the number of steps. If you are asked to change the plan, rewrite the same file.
+Save the full plan to the plan file you were given. Then reply with only the goal, the open questions word for word, and the number of steps. If you are asked to change the plan, Read the plan file first, then rewrite the same file. Only say the plan is saved if the Write result says it succeeded. If Write returns an error, fix the cause and try again, or report the error word for word.

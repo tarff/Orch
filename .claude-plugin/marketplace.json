@@ -5,14 +5,14 @@
   },
   "metadata": {
     "description": "Local marketplace for the orch plugin",
-    "version": "0.3.1"
+    "version": "0.4.1"
   },
   "plugins": [
     {
       "name": "orch",
       "source": "./",
-      "version": "0.3.1",
-      "description": "/orch:run: Haiku reads the code, Fable plans, you approve, Opus builds, Haiku reviews, optional Codex review"
+      "version": "0.4.1",
+      "description": "/orch:run: Haiku reads the code, Fable plans, you approve (optional Codex plan review), Opus builds, Haiku reviews, optional Codex review"
     }
   ]
 }

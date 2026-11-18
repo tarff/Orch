@@ -41,10 +41,50 @@ Run the agent `orch:planner`. Give it the task, the working directory, the path 
 Read `<run>/plan.md` and show the user the plan word for word, with any open questions first. Give the folder path too. Then use AskUserQuestion with these options:
 
 - `Approve and build`
-- `Change the plan`: get the user's changes, send them to the same planner with SendMessage (it keeps its context) so it rewrites `<run>/plan.md`, then repeat this step
+- `Change the plan`: get the user's changes, send them to the same planner with SendMessage (it keeps its context) so it rewrites `<run>/plan.md`, check the rewrite (see below), then repeat this step
+- `Review the plan with Codex` (uses your OpenAI/Codex account): see below, then repeat this step
 - `Cancel`: stop here
 
 Nothing is built until the user picks `Approve and build`.
+
+### Codex plan review
+
+Find the Codex script with the `ls` command in step 6. If nothing is found, tell the user the Codex plugin is not installed and repeat this step.
+
+Write `<run>/codex-plan-review.md` with exactly this text, with the task and working directory filled in:
+
+    Review this build plan before anything is built. Do not edit any files.
+
+    Task: <task>
+    Working directory: <working directory>
+
+    Check the plan against the real code in the working directory. Report:
+    - steps that rely on files, functions or behaviour that do not exist or work differently
+    - missing steps, steps in the wrong order, or checks that would not prove their step worked
+    - risks the plan does not mention
+
+    For each point, give the plan step number and, where it applies, path:line with a quote of the code. If the plan is sound, say so.
+
+    The plan follows.
+
+Then add the plan to it and run the review with Bash, with `run_in_background: true`:
+
+```bash
+cat "<run>/plan.md" >> "<run>/codex-plan-review.md"
+node "<script path>" task --fresh --prompt-file "<run>/codex-plan-review.md"
+```
+
+There is no `--write`, so Codex runs read-only. When it finishes, show its output word for word. Do not change the plan unless the user asks. If they ask, send Codex's points, plus any of their own, to the same planner with SendMessage so it rewrites `<run>/plan.md`. Check the rewrite (see below), then repeat this step.
+
+### Checking a rewrite
+
+Before each SendMessage that asks the planner to rewrite the plan, record the plan's fingerprint:
+
+```bash
+cksum "<run>/plan.md" > "<run>/plan-before.txt"
+```
+
+When the planner replies, run `cksum "<run>/plan.md"` and compare it with `<run>/plan-before.txt`. If they match, the plan file did not change, whatever the planner says. Tell the planner with SendMessage that its rewrite did not reach the file, and to Read the file and then save it again. Check again when it replies. If the file still has not changed, tell the user, and do not show the old plan as if it were the new one.
 
 ## 4. Build
 
