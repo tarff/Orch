@@ -1,6 +1,7 @@
 {
   "name": "orch",
-  "version": "0.5.0",
+  "version": "0.5.1",
+  "license": "MIT",
   "description": "/orch:run: Haiku reads the code, Fable plans, you approve (optional Codex plan review), Opus builds, Haiku reviews, optional Codex review",
   "author": {
     "name": "tarff"

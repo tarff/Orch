@@ -94,19 +94,29 @@ Each step of the plan gets its own new `orch:builder`, so no builder carries the
 2. **Build.** Run a new `orch:builder`. Give it the task, the working directory, `<run>/plan.md`, the step number N, the paths of the earlier step reports (`<run>/build-step-1.md` and so on), the path `<run>/build-step-N.md` to save its report to, and the user's answer if there was one. Tell it the plan is approved and to do step N only. Keep its agent ID.
 3. **Check the report was saved.** If `<run>/build-step-N.md` does not exist, tell the builder with SendMessage to save it. If it is still missing, tell the user.
 4. **If the builder stopped:**
-   - for a choice the plan left to the user: ask the user, then send the answer to the same builder with SendMessage so it carries on with that step
+   - for a choice the plan left to the user: ask the user, then send the answer to the same builder with SendMessage so it carries on with that step, and check its report was updated (see below)
    - because the step can't be done as written: show the user its report and ask `Change the plan` (to the planner, as in step 3, then restart this step with a new builder) or `Stop the build`
-5. **Review the step.** Run a new `orch:reviewer` with the task, the working directory, the plan path, the step number and `<run>/build-step-N.md`. Show the user the builder's summary and the reviewer's findings. If there are findings, ask whether to send them to the builder. If yes, send them to the same builder with SendMessage, then send its reply to the same reviewer with SendMessage to check the fixes. Repeat while issues remain and the user wants fixes.
+5. **Review the step.** Run a new `orch:reviewer` with the task, the working directory, the plan path, the step number and `<run>/build-step-N.md`. Show the user the builder's summary and the reviewer's findings. If there are findings, ask whether to send them to the builder. If yes, send them to the same builder with SendMessage, check its report was updated (see below), then send its reply to the same reviewer with SendMessage to check the fixes. Repeat while issues remain and the user wants fixes.
 
 Then go on to step N+1.
 
 If SendMessage to a builder or reviewer fails, start a new one and give it the plan path, the step number, the step reports and the findings.
 
+### Checking a report was updated
+
+Later builders rely on these reports. Before each SendMessage that asks a builder for more work, record its report's fingerprint:
+
+```bash
+cksum "<run>/build-step-N.md" > "<run>/build-step-N-before.txt"
+```
+
+When the builder replies, run `cksum "<run>/build-step-N.md"` and compare it with that file. If they match, the report did not change, whatever the builder says. Tell the builder with SendMessage that its report did not reach the file, and to Read the file and then save it again. Check again when it replies. If the file still has not changed, tell the user, and put the builder's reply in the prompts of the builders and reviewers that need it.
+
 ## 5. Final review
 
 When every step is done, run one new `orch:reviewer` for the whole build, with the task, the working directory, the plan path and all the step reports. Ask it to re-run every step's check and to look for problems between steps. Keep its agent ID. Show the user its findings.
 
-If the user wants fixes, run a new `orch:builder` with the task, the working directory, the plan path, the step reports and the findings. Tell it to fix only those and to save its report to `<run>/build-fixes.md`. Then send that report to the same final reviewer with SendMessage to check the fixes. Further rounds go to the same fix builder and final reviewer with SendMessage. Repeat while issues remain and the user wants fixes.
+If the user wants fixes, run a new `orch:builder` with the task, the working directory, the plan path, the step reports and the findings. Tell it to fix only those and to save its report to `<run>/build-fixes.md`. Then send that report to the same final reviewer with SendMessage to check the fixes. Further rounds go to the same fix builder and final reviewer with SendMessage, and `<run>/build-fixes.md` is checked the same way as a step report (step 4). Repeat while issues remain and the user wants fixes.
 
 ## 6. Codex review (optional)
 

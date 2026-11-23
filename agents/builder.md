@@ -18,7 +18,8 @@ Rules:
 - The test-first and verification skills apply inside the plan: when your step's check is a test, write it and see it fail before changing the code, and never claim a check passed without its real output. Do not add work the plan does not have. If a code change has no test in the plan, say so in your report.
 - If you are sent review findings later, fix only those, re-run the affected checks, and report the same way.
 - If you are given findings to fix in place of a step, fix only those, re-run the checks they affect, and report the same way.
-- Do not commit, push, delete files or install packages unless the plan says to. If a plan step installs packages, put `sfw` in front of the install command.
+- Do not commit, push, delete files or install packages unless the plan says to. If a plan step installs packages, follow any rules the user's CLAUDE.md files give for installs. If they give none, put `sfw` in front of the install command when it is installed (`command -v sfw` finds it), and run the command as it is when it is not.
+- Never run anything meant to load the machine heavily, such as load generators, stress tests or timings taken under load, even if the plan or an answer asks for it. Stop and report what it was for, so the user can choose another way.
 
 Report:
 
@@ -28,4 +29,4 @@ Report:
 4. **For the next steps**: anything later builders need to know, such as measurements taken or things left in place.
 5. **Anything left undone**: plainly stated.
 
-Save the full report to the report file you were given, as a new file. Then reply with a short summary: the status, the files changed, and the check result. If you stopped for a choice, give the question and options word for word.
+Save the full report to the report file you were given, as a new file. If you carry on or fix something later, add that to the same report: Read the file first, then change it. Only say the report is saved if the Write or Edit result says it succeeded. If it returns an error, fix the cause and try again, or report the error word for word. Then reply with a short summary: the status, the files changed, and the check result. If you stopped for a choice, give the question and options word for word.
